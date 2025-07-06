@@ -5,71 +5,101 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
-# Configure Google API Key
+# --- Configuration ---
+# Ensure GOOGLE_API_KEY is set
 if "GOOGLE_API_KEY" not in os.environ:
-    st.error("GOOGLE_API_KEY not found in environment variables. Please set it in a .env file.")
+    st.error("`GOOGLE_API_KEY` not found in environment variables. Please set it in a `.env` file or directly in your environment.")
     st.stop()
 
 # Initialize the Gemini LLM
-llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=os.environ["GOOGLE_API_KEY"])
+try:
+    llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=os.environ["GOOGLE_API_KEY"])
+except Exception as e:
+    st.error(f"Failed to initialize Gemini LLM. Check your `GOOGLE_API_KEY` and internet connection. Error: {e}")
+    st.stop()
 
-# Define the prompt template
-prompt_template = PromptTemplate(
-    input_variables=["cpp_code"],
-    template="You are an expert code converter. Convert the following C++ code to its equivalent Python code. Maintain the logic and functionality as much as possible, using idiomatic Python. Provide only the Python code, without any extra explanations or markdown comments outside the code block.\n\nC++ Code:\n```cpp\n{cpp_code}\n```\n\nPython Code:\n"
-)
-
-# Create an LLMChain
-code_conversion_chain = LLMChain(llm=llm, prompt=prompt_template)
-
-# Streamlit UI
-st.set_page_config(page_title="C++ to Python Converter", layout="wide")
-st.title("C++ to Python Code Converter")
-
-st.write("Enter your C++ code below, and I'll convert it to Python!")
-
-# Input text area for C++ code
-cpp_code_input = st.text_area("C++ Code", height=300, help="Paste your C++ code here.")
-
-if st.button("Convert to Python"):
-    if cpp_code_input:
-        with st.spinner("Converting... This might take a moment."):
-            try:
-                # Invoke the chain to get the conversion
-                python_code_output = code_conversion_chain.run(cpp_code=cpp_code_input)
-                st.subheader("Converted Python Code:")
-                st.code(python_code_output, language="python")
-            except Exception as e:
-                st.error(f"An error occurred during conversion: {e}")
-                st.info("Please ensure your Google API Key is valid and try again.")
-    else:
-        st.warning("Please enter some C++ code to convert.")
-
-st.markdown("""
----
-**How it works:**
-This application uses Google's Gemini LLM via LangChain to perform the code conversion.
-It sends your C++ code to the LLM with a specific prompt, asking it to translate the code into Python.
-""")
-
-st.subheader("Example C++ Code:")
-st.code("""
-#include <iostream>
-#include <vector>
-#include <numeric>
-
-int main() {
-    std::vector<int> numbers = {1, 2, 3, 4, 5};
-    long long sum = 0;
-    for (int num : numbers) {
-        sum += num;
-    }
-    std::cout << "Sum: " << sum << std::endl;
-    return 0;
+# Trending languages for dropdowns
+LANGUAGES = {
+    "C++": "cpp",
+    "Python": "python",
+    "Java": "java",
+    "JavaScript": "javascript",
+    "Go": "go",
+    "Rust": "rust",
+    "TypeScript": "typescript",
+    "C#": "csharp",
+    "PHP": "php",
+    "Ruby": "ruby"
 }
-""", language="cpp")
 
-st.markdown("Developed with ❤️ using Streamlit, LangChain, and Google Gemini LLM.")
+# --- LangChain Prompts and Chains ---
+
+# Prompt for code conversion
+conversion_template = PromptTemplate(
+    input_variables=["input_language", "output_language", "code"],
+    template="You are an expert code converter. Convert the following {input_language} code to {output_language} code. Focus on maintaining logic and functionality, and use idiomatic {output_language} where appropriate. Provide only the converted code, without any extra explanations, comments outside the code, or markdown comments like 'Here is the converted code:'.\n\n{input_language} Code:\n```\n{code}\n```\n\n{output_language} Code:"
+)
+conversion_chain = LLMChain(llm=llm, prompt=conversion_template)
+
+# Prompt for code readability improvement
+readability_template = PromptTemplate(
+    input_variables=["language", "code"],
+    template="You are an expert code improver. Improve the readability, clarity, and adherence to standard best practices of the following {language} code. This includes better variable names, consistent formatting, comments where necessary, and breaking down complex parts. Provide only the improved code, without any extra explanations, comments outside the code, or markdown comments like 'Here is the improved code:'.\n\n{language} Code:\n```\n{code}\n```\n\nImproved {language} Code:"
+)
+readability_chain = LLMChain(llm=llm, prompt=readability_template)
+
+# --- Streamlit UI ---
+st.set_page_config(layout="wide", page_title="Universal Code Converter & Enhancer")
+st.title("🚀 Universal Code Converter & Enhancer")
+st.write("Convert code between different programming languages or improve readability of existing code.")
+
+# Layout with two columns for input and output
+col1, col2 = st.columns(2)
+
+with col1:
+    st.header("Input Code")
+    input_language_name = st.selectbox("Select Input Language", list(LANGUAGES.keys()), index=1) # Default to Python
+    input_language_slug = LANGUAGES[input_language_name]
+    input_code = st.text_area("Paste your code here...", height=400, key="input_code")
+
+with col2:
+    st.header("Output Code")
+    output_language_name = st.selectbox("Select Output Language", list(LANGUAGES.keys()), index=1) # Default to Python
+    output_language_slug = LANGUAGES[output_language_name]
+    output_code_display = st.empty() # Placeholder for displaying output code
+
+# Conversion/Improvement Button
+st.markdown("---")
+if st.button("✨ Process Code", use_container_width=True, help="Convert code or improve readability"):
+    if not input_code:
+        st.warning("Please enter some code to process.")
+    else:
+        with st.spinner("Processing your code... This might take a moment."):
+            try:
+                if input_language_slug == output_language_slug:
+                    # Same language selected: Improve readability
+                    processed_code = readability_chain.run(language=input_language_name, code=input_code)
+                    output_code_display.code(processed_code, language=output_language_slug)
+                    st.success(f"Code readability improved for {input_language_name}!")
+                else:
+                    # Different languages selected: Convert
+                    processed_code = conversion_chain.run(
+                        input_language=input_language_name,
+                        output_language=output_language_name,
+                        code=input_code
+                    )
+                    output_code_display.code(processed_code, language=output_language_slug)
+                    st.success(f"Code converted from {input_language_name} to {output_language_name}!")
+
+            except Exception as e:
+                st.error(f"An error occurred during processing: {e}")
+                st.info("Please check your input code, selected languages, and ensure your Google API Key is valid and active.")
+
+st.markdown("---")
+st.info("💡 **Tip:** If you select the same input and output language, the tool will automatically enhance the code's readability!")
+st.markdown("""
+Developed with ❤️ using Streamlit, LangChain, and Google Gemini LLM.
+""")
