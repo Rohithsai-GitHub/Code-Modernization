@@ -16,7 +16,7 @@ if "GOOGLE_API_KEY" not in os.environ:
 
 # Initialize the Gemini LLM
 try:
-    llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=os.environ["GOOGLE_API_KEY"])
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=os.environ["GOOGLE_API_KEY"])
 except Exception as e:
     st.error(f"Failed to initialize Gemini LLM. Check your `GOOGLE_API_KEY` and internet connection. Error: {e}")
     st.stop()
