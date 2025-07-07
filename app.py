@@ -11,7 +11,6 @@ if "GOOGLE_API_KEY" not in os.environ:
     st.error("`GOOGLE_API_KEY` not found in environment variables. Please set it in a `.env` file or directly in your environment.")
     st.stop()
 
-# Initialize the Gemini LLM
 try:
     llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=os.environ["GOOGLE_API_KEY"])
 except Exception as e:
@@ -34,7 +33,10 @@ LANGUAGES = {
 # Prompt for code conversion
 conversion_template = PromptTemplate(
     input_variables=["input_language", "output_language", "code"],
-    template="You are an expert code converter. Convert the following {input_language} code to {output_language} code. Focus on maintaining logic and functionality, and use idiomatic {output_language} where appropriate. Provide only the converted code, without any extra explanations, comments outside the code, or markdown comments like 'Here is the converted code:'.\n\n{input_language} Code:\n```\n{code}\n```\n\n{output_language} Code:"
+    template="You are an expert code converter. " \
+    "Convert the following {input_language} code to {output_language} code. " \
+    "Focus on maintaining logic and functionality, and use idiomatic {output_language} where appropriate. " \
+    "Provide only the converted code, without any extra explanations, comments outside the code, or markdown comments like 'Here is the converted code:'.\n\n{input_language} Code:\n```\n{code}\n```\n\n{output_language} Code:"
 )
 conversion_chain = LLMChain(llm=llm, prompt=conversion_template)
 
@@ -44,7 +46,7 @@ readability_template = PromptTemplate(
     template="You are an expert code improver. " \
     "Improve the readability, clarity, and adherence to standard best practices of the following {language} code. " \
     "This includes better variable names, consistent formatting, comments where necessary, and breaking down complex parts. " \
-    "Provide only the improved code, without any extra explanations, comments outside the code, or markdown comments like "
+    "Provide only the improved code, without any extra explanations, comments outside the code, or markdown comments like " \
     "'Here is the improved code:'.\n\n{language} Code:\n\n{code}\n\n\nImproved {language} Code:"
 )
 readability_chain = LLMChain(llm=llm, prompt=readability_template)
