@@ -33,28 +33,29 @@ LANGUAGES = {
 # Prompt for code conversion
 conversion_template = PromptTemplate(
     input_variables=["input_language", "output_language", "code"],
-    template="You are an expert code converter. " \
-    "Convert the following {input_language} code to {output_language} code. " \
-    "Focus on maintaining logic and functionality, and use idiomatic {output_language} where appropriate. " \
-    "Provide only the converted code, without any extra explanations, comments outside the code, or markdown comments like 'Here is the converted code:'.\n\n{input_language} Code:\n```\n{code}\n```\n\n{output_language} Code:"
+    template="""You are an expert code converter. 
+    Convert the following {input_language} code to {output_language} code. 
+    Focus on maintaining logic and functionality, and use idiomatic {output_language} where appropriate. 
+    Provide only the converted code, without any extra explanations, comments outside the code, or markdown comments like 
+    'Here is the converted code:'.\n\n{input_language} Code:\n```\n{code}\n```\n\n{output_language} Code:"""
 )
 conversion_chain = LLMChain(llm=llm, prompt=conversion_template)
 
 # Prompt for code readability improvement
 readability_template = PromptTemplate(
     input_variables=["language", "code"],
-    template="You are an expert code improver. " \
-    "Improve the readability, clarity, and adherence to standard best practices of the following {language} code. " \
-    "This includes better variable names, consistent formatting, comments where necessary, and breaking down complex parts. " \
-    "Provide only the improved code, without any extra explanations, comments outside the code, or markdown comments like " \
-    "'Here is the improved code:'.\n\n{language} Code:\n\n{code}\n\n\nImproved {language} Code:"
+    template="""You are an expert code improver. 
+    Improve the readability, clarity, and adherence to standard best practices of the following {language} code. 
+    This includes better variable names, consistent formatting, comments where necessary, and breaking down complex parts. 
+    Provide only the improved code, without any extra explanations, comments outside the code, or markdown comments like 
+    'Here is the improved code:'.\n\n{language} Code:\n\n{code}\n\n\nImproved {language} Code:"""
 )
 readability_chain = LLMChain(llm=llm, prompt=readability_template)
 
 # Streamlit UI
 st.set_page_config(layout="wide", page_title="Universal Code Converter & Enhancer")
 st.title("🚀 Universal Code Translator & Enhancer")
-st.write("Convert code between different programming languages or improve readability of existing code.")
+st.write("Translate code between different programming languages or improve readability of existing code.")
 st.info("💡 **Tip:** If you select the same input and output language, the tool will automatically enhance the code's readability!")
 
 
