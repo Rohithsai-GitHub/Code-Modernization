@@ -1,8 +1,7 @@
 import streamlit as st
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,35 +28,49 @@ LANGUAGES = {
     "PHP": "php",
     "Ruby": "ruby"
 }
+OUTPUT_LANGUAGES = {
+    "JavaScript": "javascript",
+    "Python": "python",
+    "PHP": "php",
+    "Ruby": "ruby"
+}
+
+checker = PromptTemplate.from_template("""
+    Your task is to classify the given input. 
+    Respond with just 'CODE' if the input appears to be a programming language snippet, script, or configuration file. 
+    Respond with just 'TEXT' if the input is written in natural human language, such as an article, text, words, email, or casual conversation.
+    Input: {code}
+    """)
+
+checker_chain = checker | llm
+
 
 # Prompt for code conversion
-conversion_template = PromptTemplate(
-    input_variables=["input_language", "output_language", "code"],
-    template="""You are an expert code converter. 
-    Convert the following {input_language} code to {output_language} code. 
+conversion_template = ChatPromptTemplate([
+    ("system", "You are an expert code converter."),
+    ("user", """Convert the following {input_language} code to {output_language} code. 
     Focus on maintaining logic and functionality, and use idiomatic {output_language} where appropriate. 
     Provide only the converted code, without any extra explanations, comments outside the code, or markdown comments like 
-    'Here is the converted code:'.\n\n{input_language} Code:\n```\n{code}\n```\n\n{output_language} Code:"""
-)
-conversion_chain = LLMChain(llm=llm, prompt=conversion_template)
+    'Here is the converted code:'.\n\n{input_language} Code:\n```\n{code}\n```\n\n{output_language} Code:""")
+    ])
+
+conversion_chain = conversion_template | llm
 
 # Prompt for code readability improvement
-readability_template = PromptTemplate(
-    input_variables=["language", "code"],
-    template="""You are an expert code improver. 
-    Improve the readability, clarity, and adherence to standard best practices of the following {language} code. 
+readability_template = ChatPromptTemplate([
+    ("system", "You are an expert code improver."),
+    ("user", """Improve the readability, clarity, and adherence to standard best practices of the following {language} code.
     This includes better variable names, consistent formatting, comments where necessary, and breaking down complex parts. 
     Provide only the improved code, without any extra explanations, comments outside the code, or markdown comments like 
-    'Here is the improved code:'.\n\n{language} Code:\n\n{code}\n\n\nImproved {language} Code:"""
-)
-readability_chain = LLMChain(llm=llm, prompt=readability_template)
+    'Here is the improved code:'.\n\n{language} Code:\n\n{code}\n\n\nImproved {language} Code:""")
+])
+readability_chain = readability_template | llm
 
 # Streamlit UI
 st.set_page_config(layout="wide", page_title="Universal Code Converter & Enhancer")
 st.title("🚀 Universal Code Translator & Enhancer")
 st.write("Translate code between different programming languages or improve readability of existing code.")
 st.info("💡 **Tip:** If you select the same input and output language, the tool will automatically enhance the code's readability!")
-
 
 col1, col2 = st.columns(2)
 
@@ -69,7 +82,7 @@ with col1:
 
 with col2:
     st.header("Output Code")
-    output_language_name = st.selectbox("Select Output Language", list(LANGUAGES.keys()), index=1) # Default to Python
+    output_language_name = st.selectbox("Select Output Language", list(OUTPUT_LANGUAGES.keys()), index=1) # Default to Python
     output_language_slug = LANGUAGES[output_language_name]
     output_code_display = st.empty()
 
@@ -80,16 +93,20 @@ if st.button("✨ Process Code", use_container_width=True, help="Convert code or
     else:
         with st.spinner("Processing your code... This might take a moment."):
             try:
+                res = checker_chain.invoke({"code": input_code}).content
+                if res == "TEXT":
+                    raise ValueError("Expected CODE, not TEXT")
                 if input_language_slug == output_language_slug:
-                    processed_code = readability_chain.run(language=input_language_name, code=input_code)
+                    processed_code = readability_chain.invoke({"language": input_language_name, "code": input_code}).content
                     output_code_display.code(processed_code, language=output_language_slug)
                     st.success(f"Code readability improved for {input_language_name}!")
                 else:
-                    processed_code = conversion_chain.run(
-                        input_language=input_language_name,
-                        output_language=output_language_name,
-                        code=input_code
-                    )
+                    processed_code = conversion_chain.invoke(
+                        {"input_language": input_language_name,
+                        "output_language": output_language_name,
+                        "code": input_code}
+                    ).content
+
                     output_code_display.code(processed_code, language=output_language_slug)
                     st.success(f"Code converted from {input_language_name} to {output_language_name}!")
 
@@ -99,5 +116,5 @@ if st.button("✨ Process Code", use_container_width=True, help="Convert code or
 
 st.markdown("---")
 st.markdown("""
-Developed with ❤️ using Streamlit, LangChain, and Google Gemini LLM.
+Developed using Streamlit, LangChain, and Google Gemini LLM.
 """)
