@@ -28,12 +28,6 @@ LANGUAGES = {
     "PHP": "php",
     "Ruby": "ruby"
 }
-OUTPUT_LANGUAGES = {
-    "JavaScript": "javascript",
-    "Python": "python",
-    "PHP": "php",
-    "Ruby": "ruby"
-}
 
 checker = PromptTemplate.from_template("""
     Your task is to classify the given input. 
@@ -82,7 +76,7 @@ with col1:
 
 with col2:
     st.header("Output Code")
-    output_language_name = st.selectbox("Select Output Language", list(OUTPUT_LANGUAGES.keys()), index=1) # Default to Python
+    output_language_name = st.selectbox("Select Output Language", list(LANGUAGES.keys()), index=1) # Default to Python
     output_language_slug = LANGUAGES[output_language_name]
     output_code_display = st.empty()
 
