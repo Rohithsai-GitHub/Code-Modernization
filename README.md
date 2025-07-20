@@ -1,6 +1,4 @@
----
 
-````markdown
 # ⚡️ Universal Code Translator & Enhancer
 
 Convert code between programming languages or improve its readability — instantly, intelligently.  
